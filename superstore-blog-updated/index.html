@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Superstore Sales Analytics with R and Power BI</title>
+<meta name="description" content="Time series analysis and Holt-Winters forecasting on the Sample Superstore dataset, built with R scripts inside Power BI Desktop.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head><body>
+<header class="top"><div class="in">
+<h1>Forecasting Superstore Sales with R inside Power BI</h1>
+<p>Assignment Practical No. 7, Data Visualization Lab (TE7663)</p>
+<p>Department of Artificial Intelligence and Machine Learning, Symbiosis Institute of Technology, Pune</p>
+<div class="meta"><span>Amaan Saxena</span><span>Academic Year 2026-2027, Semester V</span><span>Dataset: Sample Superstore</span><span>Technique: Holt-Winters time series</span></div>
+</div></header>
+<main>
+<nav class="toc"><strong>Contents</strong><ol>
+<li><a href="#intro">What this assignment asks for</a></li>
+<li><a href="#setup">Configuring R with Power BI</a></li>
+<li><a href="#import">Importing the dataset</a></li>
+<li><a href="#cleaning">Cleaning the data</a></li>
+<li><a href="#stats">Summary statistics</a></li>
+<li><a href="#visuals">The four R visuals</a></li>
+<li><a href="#model">Holt-Winters forecasting</a></li>
+<li><a href="#dashboard">The final dashboard</a></li>
+<li><a href="#kpis">KPI cards</a></li>
+<li><a href="#insights">Business insights</a></li>
+<li><a href="#conclusion">Conclusion</a></li>
+</ol></nav>
+
+<section id="intro">
+<h2>What this assignment asks for</h2>
+<p>The brief is to connect R with Power BI Desktop, pick a dataset, run one advanced technique and then present everything in an interactive dashboard. I used the Sample Superstore data (about four years of US retail orders) and chose time series analysis, ending in a 12 month Holt-Winters sales forecast. Everything below follows the order of the task list in the practical sheet.</p>
+<div class="tablewrap t-teal"><table>
+<thead><tr><th>Dashboard requirement</th><th>Needed</th><th>What I built</th></tr></thead>
+<tbody>
+<tr><td>KPI cards</td><td>5 or more</td><td>6: Total Sales, Total Profit, Total Quantity, Total Orders, Profit Margin, Avg Discount</td></tr>
+<tr><td>R visualizations</td><td>4 or more</td><td>4: monthly trend, decomposition, Holt-Winters forecast, profit by discount band</td></tr>
+<tr><td>Power BI visualizations</td><td>4 or more</td><td>4: sales by category, sales by segment, profit by state map, sales and profit by year</td></tr>
+<tr><td>Slicers</td><td>Interactive</td><td>Region, Sub-Category, Ship Mode</td></tr>
+<tr><td>Filters</td><td>Yes</td><td>Filters pane on the report, plus the slicers above</td></tr>
+<tr><td>Drill-down</td><td>Yes</td><td>Year to quarter to month on the date axis of the sales and profit chart</td></tr>
+<tr><td>Layout</td><td>Professional</td><td>KPI row on top, slicers on the left, R visuals and Power BI visuals in a grid</td></tr>
+</tbody></table></div>
+<p>The practical sheet lists ten tasks. This is how each one maps to a section of the post:</p>
+<div class="tablewrap t-violet"><table>
+<thead><tr><th>#</th><th>Task</th><th>Requirement</th><th>Where</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>R Installation</td><td>Configure R with Power BI</td><td><a href="#setup">Section 2</a></td></tr>
+<tr><td>2</td><td>Import Dataset</td><td>Load dataset into Power BI</td><td><a href="#import">Section 3</a></td></tr>
+<tr><td>3</td><td>Data Cleaning</td><td>Handle missing values and duplicates</td><td><a href="#cleaning">Section 4</a></td></tr>
+<tr><td>4</td><td>R Script</td><td>Execute R script successfully</td><td><a href="#cleaning">Section 4</a> and <a href="#visuals">6</a></td></tr>
+<tr><td>5</td><td>Summary Statistics</td><td>Generate descriptive statistics</td><td><a href="#stats">Section 5</a></td></tr>
+<tr><td>6</td><td>Data Visualization</td><td>Create R-based visualizations</td><td><a href="#visuals">Section 6</a></td></tr>
+<tr><td>7</td><td>Advanced Analytics</td><td>Implement one ML/statistical technique</td><td><a href="#model">Section 7</a></td></tr>
+<tr><td>8</td><td>Interactive Dashboard</td><td>Integrate R visuals with Power BI</td><td><a href="#dashboard">Section 8</a></td></tr>
+<tr><td>9</td><td>Business Insights</td><td>Interpret analytical results</td><td><a href="#insights">Section 10</a></td></tr>
+<tr><td>10</td><td>Conclusion</td><td>Summarize findings</td><td><a href="#conclusion">Section 11</a></td></tr>
+</tbody></table></div>
+</section>
+
+<section id="setup">
+<h2>Configuring R with Power BI</h2>
+<p>Power BI does not ship with R, so the first job was installing R from CRAN and pointing Power BI at it. In Power BI Desktop I opened <code>File &gt; Options and settings &gt; Options &gt; R scripting</code> and checked that the detected home directory matched my R installation. Without this step the R script visual refuses to run.</p>
+<p>The only package I needed beyond base R was <code>ggplot2</code>, which I installed once from the R console:</p>
+<pre><code>install.packages("ggplot2")</code></pre>
+<figure><img src="assets/steps-performed.png" alt="Power BI report with the R script editor open, showing the KPI cards, R visuals and the Holt-Winters script"><figcaption>Steps performed: the R script visual open in the R script editor in Power BI Desktop, with the KPI cards and R visuals rendered above it.</figcaption></figure>
+</section>
+
+<section id="import">
+<h2>Importing the dataset</h2>
+<p>I loaded <code>Sample - Superstore.csv</code> through <code>Home &gt; Get data &gt; Text/CSV</code> and chose <em>Transform Data</em> instead of <em>Load</em>, because the cleaning happens in Power Query. The file uses latin1 encoding, so I set the file origin to Western European to stop the accented characters from breaking. Dates arrive as text in US month/day/year format, which the script below converts.</p>
+</section>
+
+<section id="cleaning">
+<h2>Cleaning the data</h2>
+<p>In Power Query I used <code>Transform &gt; Run R script</code>. Power BI hands the table to R as a data frame called <code>dataset</code>, and any data frame left in the script becomes a table I can pick afterwards. The script does four things: fixes the date columns, fills missing values, removes duplicate records and then calculates descriptive statistics.</p>
+<ul>
+<li><strong>Dates:</strong> Order Date and Ship Date are converted to real dates, whichever format they come in.</li>
+<li><strong>Missing values:</strong> numeric columns get the median, text columns get the label "Unknown".</li>
+<li><strong>Duplicates:</strong> Row ID is just a counter, so I ignore it when comparing rows and drop exact repeats.</li>
+</ul>
+<pre><code>df &lt;- dataset
+
+# 1. Make sure Order Date / Ship Date are real dates (US format m/d/Y)
+fix_date &lt;- function(x) {
+  if (inherits(x, &quot;POSIXt&quot;)) return(as.Date(x))
+  if (inherits(x, &quot;Date&quot;))   return(x)
+  as.Date(as.character(x), format = &quot;%m/%d/%Y&quot;)
+}
+df[[&quot;Order Date&quot;]] &lt;- fix_date(df[[&quot;Order Date&quot;]])
+df[[&quot;Ship Date&quot;]]  &lt;- fix_date(df[[&quot;Ship Date&quot;]])
+
+# 2. Missing values: numeric -&gt; median, text -&gt; &quot;Unknown&quot;
+for (col in names(df)) {
+  if (is.numeric(df[[col]])) {
+    df[[col]][is.na(df[[col]])] &lt;- median(df[[col]], na.rm = TRUE)
+  } else if (is.character(df[[col]]) || is.factor(df[[col]])) {
+    v &lt;- as.character(df[[col]])
+    v[is.na(v) | v == &quot;&quot;] &lt;- &quot;Unknown&quot;
+    df[[col]] &lt;- v
+  }
+}
+
+# 3. Duplicates: ignore the Row ID counter, drop exact repeated records
+dup &lt;- duplicated(df[, setdiff(names(df), &quot;Row ID&quot;)])
+df  &lt;- df[!dup, ]
+
+# 4. Cleaned table
+clean_data &lt;- df
+
+# 5. Summary statistics (descriptive) for the numeric columns
+num_cols &lt;- c(&quot;Sales&quot;, &quot;Quantity&quot;, &quot;Discount&quot;, &quot;Profit&quot;)
+summary_stats &lt;- do.call(rbind, lapply(num_cols, function(col) {
+  x &lt;- df[[col]]
+  data.frame(
+    Variable = col,
+    Count    = length(x),
+    Mean     = round(mean(x), 3),
+    Median   = round(median(x), 3),
+    SD       = round(sd(x), 3),
+    Min      = round(min(x), 3),
+    Q1       = round(quantile(x, 0.25), 3),
+    Q3       = round(quantile(x, 0.75), 3),
+    Max      = round(max(x), 3),
+    stringsAsFactors = FALSE
+  )
+}))
+rownames(summary_stats) &lt;- NULL</code></pre>
+<p>After it ran I clicked <em>Table</em> next to <code>clean_data</code> and <code>summary_stats</code>, renamed the cleaned table to <code>Superstore</code>, then used Close &amp; Apply.</p>
+</section>
+
+<section id="stats">
+<h2>Summary statistics</h2>
+<p>The <code>summary_stats</code> table comes out of the same script and describes the four numeric columns. Each row reports the count, mean, median, standard deviation, minimum, first quartile, third quartile and maximum.</p>
+<div class="tablewrap t-blue"><table>
+<thead><tr><th>Variable</th><th>What it measures</th><th>Statistics reported</th></tr></thead>
+<tbody>
+<tr><td>Sales</td><td>Revenue of one order line in dollars</td><td rowspan="4">Count, Mean, Median, SD, Min, Q1, Q3, Max</td></tr>
+<tr><td>Quantity</td><td>Units on the order line</td></tr>
+<tr><td>Discount</td><td>Discount fraction applied (0 to 0.8)</td></tr>
+<tr><td>Profit</td><td>Profit of the order line, can be negative</td></tr>
+</tbody></table></div>
+<figure><img src="assets/summary-stats.png" alt="Output of the summary_stats table in Power Query"><figcaption>Output of the summary_stats table in Power Query (9,993 rows after cleaning).</figcaption></figure>
+</section>
+
+<section id="visuals">
+<h2>The four R visuals</h2>
+<p>Each R visual is an <em>R script visual</em> from the Visualizations pane. For every one I dragged <code>Row ID</code> plus the fields named below into Values. Row ID matters: without it Power BI collapses rows that look identical before R sees them, which quietly changes the totals. Order Date has to be dragged as a plain field, not the date hierarchy.</p>
+
+<h3>Monthly sales trend</h3>
+<p>Fields: Row ID, Order Date, Sales. Orders are summed per month, plotted as a line, and a dashed LOESS curve shows the underlying direction.</p>
+<pre><code>library(ggplot2)
+df &lt;- dataset
+df$Order.Date &lt;- as.Date(df[[&quot;Order Date&quot;]])
+df$Month &lt;- as.Date(format(df$Order.Date, &quot;%Y-%m-01&quot;))
+m &lt;- aggregate(Sales ~ Month, data = df, FUN = sum)
+
+ggplot(m, aes(x = Month, y = Sales)) +
+  geom_line(color = &quot;#1F4E79&quot;, linewidth = 1) +
+  geom_point(color = &quot;#1F4E79&quot;, size = 1.8) +
+  geom_smooth(method = &quot;loess&quot;, formula = y ~ x, se = FALSE,
+              color = &quot;#E8743B&quot;, linetype = &quot;dashed&quot;, linewidth = 0.9) +
+  scale_y_continuous(labels = function(x) paste0(&quot;$&quot;, format(x / 1000, big.mark = &quot;,&quot;), &quot;K&quot;)) +
+  labs(title = &quot;Monthly Sales with Trend Line&quot;, x = NULL, y = &quot;Sales&quot;) +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = &quot;bold&quot;))</code></pre>
+
+<h3>Time series decomposition</h3>
+<p>Fields: Row ID, Order Date, Sales. This splits the monthly series into trend, seasonal and random parts. Months removed by a slicer are filled with zero so the series stays regular, and the visual asks for at least 24 months before it will draw.</p>
+<pre><code>df &lt;- dataset
+df$Order.Date &lt;- as.Date(df[[&quot;Order Date&quot;]])
+df$Month &lt;- as.Date(format(df$Order.Date, &quot;%Y-%m-01&quot;))
+m &lt;- aggregate(Sales ~ Month, data = df, FUN = sum)
+
+# fill any months removed by slicers so the series stays regular
+all_months &lt;- data.frame(Month = seq(min(m$Month), max(m$Month), by = &quot;month&quot;))
+m &lt;- merge(all_months, m, by = &quot;Month&quot;, all.x = TRUE)
+m$Sales[is.na(m$Sales)] &lt;- 0
+
+if (nrow(m) &gt;= 24) {
+  y0 &lt;- as.numeric(format(min(m$Month), &quot;%Y&quot;))
+  m0 &lt;- as.numeric(format(min(m$Month), &quot;%m&quot;))
+  ts_m &lt;- ts(m$Sales, start = c(y0, m0), frequency = 12)
+  plot(decompose(ts_m, type = if (all(m$Sales &gt; 0)) &quot;multiplicative&quot; else &quot;additive&quot;),
+       col = &quot;#1F4E79&quot;)
+} else {
+  plot.new()
+  text(0.5, 0.5, &quot;Select at least 24 months of data\nto show the decomposition&quot;, cex = 1.2)
+}</code></pre>
+
+<h3>Holt-Winters forecast</h3>
+<p>Fields: Row ID, Order Date, Sales. This is the advanced analytics part, explained in the next section.</p>
+<pre><code>library(ggplot2)
+df &lt;- dataset
+df$Order.Date &lt;- as.Date(df[[&quot;Order Date&quot;]])
+df$Month &lt;- as.Date(format(df$Order.Date, &quot;%Y-%m-01&quot;))
+m &lt;- aggregate(Sales ~ Month, data = df, FUN = sum)
+all_months &lt;- data.frame(Month = seq(min(m$Month), max(m$Month), by = &quot;month&quot;))
+m &lt;- merge(all_months, m, by = &quot;Month&quot;, all.x = TRUE)
+m$Sales[is.na(m$Sales)] &lt;- 0
+
+if (nrow(m) &gt;= 24) {
+  y0 &lt;- as.numeric(format(min(m$Month), &quot;%Y&quot;))
+  m0 &lt;- as.numeric(format(min(m$Month), &quot;%m&quot;))
+  ts_m &lt;- ts(m$Sales, start = c(y0, m0), frequency = 12)
+
+  hw &lt;- HoltWinters(ts_m, seasonal = if (all(m$Sales &gt; 0)) &quot;multiplicative&quot; else &quot;additive&quot;)
+  fc &lt;- predict(hw, n.ahead = 12, prediction.interval = TRUE, level = 0.80)
+
+  fut &lt;- seq(max(m$Month), by = &quot;month&quot;, length.out = 13)[-1]
+  fdf &lt;- data.frame(Month = fut,
+                    Forecast = as.numeric(fc[, &quot;fit&quot;]),
+                    Lower = pmax(as.numeric(fc[, &quot;lwr&quot;]), 0),
+                    Upper = as.numeric(fc[, &quot;upr&quot;]))
+
+  ggplot() +
+    geom_ribbon(data = fdf, aes(x = Month, ymin = Lower, ymax = Upper),
+                fill = &quot;#E8743B&quot;, alpha = 0.2) +
+    geom_line(data = m, aes(x = Month, y = Sales), color = &quot;#1F4E79&quot;, linewidth = 1) +
+    geom_line(data = fdf, aes(x = Month, y = Forecast), color = &quot;#E8743B&quot;,
+              linewidth = 1.1, linetype = &quot;dashed&quot;) +
+    scale_y_continuous(labels = function(x) paste0(&quot;$&quot;, format(x / 1000, big.mark = &quot;,&quot;), &quot;K&quot;)) +
+    labs(title = &quot;Holt-Winters Forecast: Next 12 Months&quot;,
+         subtitle = &quot;Blue = actual sales | Orange = forecast with 80% interval&quot;,
+         x = NULL, y = &quot;Sales&quot;) +
+    theme_minimal(base_size = 12) +
+    theme(plot.title = element_text(face = &quot;bold&quot;))
+} else {
+  plot.new()
+  text(0.5, 0.5, &quot;Select at least 24 months of data\nto build the forecast&quot;, cex = 1.2)
+}</code></pre>
+
+<h3>Average profit by discount band</h3>
+<p>Fields: Row ID, Discount, Profit. Discounts are grouped into four bands and the mean profit per order line is plotted, green for profit and red for loss.</p>
+<pre><code>library(ggplot2)
+df &lt;- dataset
+df$Band &lt;- cut(df$Discount, breaks = c(-0.01, 0, 0.2, 0.4, 1),
+               labels = c(&quot;0%&quot;, &quot;1-20%&quot;, &quot;21-40%&quot;, &quot;Above 40%&quot;))
+agg &lt;- aggregate(Profit ~ Band, data = df, FUN = mean)
+
+ggplot(agg, aes(x = Band, y = Profit, fill = Profit &gt; 0)) +
+  geom_col(width = 0.65) +
+  geom_text(aes(label = paste0(&quot;$&quot;, round(Profit, 1)),
+                vjust = ifelse(Profit &gt;= 0, -0.4, 1.3)), size = 4) +
+  scale_fill_manual(values = c(&quot;TRUE&quot; = &quot;#2E8B57&quot;, &quot;FALSE&quot; = &quot;#C0392B&quot;), guide = &quot;none&quot;) +
+  labs(title = &quot;Average Profit per Order Line by Discount Band&quot;,
+       x = &quot;Discount band&quot;, y = &quot;Average profit ($)&quot;) +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = &quot;bold&quot;))</code></pre>
+</section>
+
+<section id="model">
+<h2>Holt-Winters forecasting</h2>
+<p>Monthly Superstore sales show two things at once: a slow upward trend and a repeating seasonal pattern with weak early months and a strong November and December. Holt-Winters exponential smoothing is built for exactly that, because it tracks a level, a trend and a seasonal index and updates all three as new months arrive. I used the multiplicative form, since the seasonal swings get larger as sales grow (the decomposition panel agrees).</p>
+<p>The model is fitted with R's <code>HoltWinters()</code> and projected 12 months ahead with an 80% prediction interval. The shaded orange band in the forecast chart is that interval, so a wider band simply means less certainty further out.</p>
+<p>To check accuracy I also wrote an optional RStudio block that trains on 2014 to 2016, predicts 2017 and reports MAPE and RMSE. It cannot run inside Power BI because it reads the CSV directly:</p>
+<pre><code>raw &lt;- read.csv(&quot;Sample - Superstore.csv&quot;, fileEncoding = &quot;latin1&quot;, check.names = FALSE)
+raw$`Order Date` &lt;- as.Date(raw$`Order Date`, format = &quot;%m/%d/%Y&quot;)
+raw$Month &lt;- as.Date(format(raw$`Order Date`, &quot;%Y-%m-01&quot;))
+m &lt;- aggregate(Sales ~ Month, data = raw, FUN = sum)
+ts_all &lt;- ts(m$Sales, start = c(2014, 1), frequency = 12)
+train  &lt;- window(ts_all, end = c(2016, 12))
+test   &lt;- window(ts_all, start = c(2017, 1))
+hw     &lt;- HoltWinters(train, seasonal = &quot;multiplicative&quot;)
+pred   &lt;- predict(hw, n.ahead = 12)
+MAPE   &lt;- mean(abs((test - pred) / test)) * 100
+RMSE   &lt;- sqrt(mean((test - pred)^2))
+cat(&quot;MAPE:&quot;, round(MAPE, 2), &quot;%  RMSE:&quot;, round(RMSE, 0), &quot;\n&quot;)</code></pre>
+<p class="note">Add your own MAPE and RMSE from RStudio here if you ran the check. I have not filled in numbers I did not produce.</p>
+</section>
+
+<section id="dashboard">
+<h2>The final dashboard</h2>
+<p>The report has two pages in Power BI, one for the R time series work and one for the standard Power BI visuals. The image below puts them together in a single view: slicers on the left, KPI cards across the top, the four R visuals in the upper grid and the Power BI visuals underneath.</p>
+<figure><img src="assets/dashboard-final.png" alt="Combined Superstore dashboard with KPI cards, slicers, R visuals and Power BI visuals"><figcaption>Combined dashboard layout.</figcaption></figure>
+<p>The R visuals respond to the slicers like any other visual. Picking a region or ship mode filters the data frame that Power BI sends to R, and the charts redraw. That is also why the 24 month guard exists in the scripts: a narrow selection can leave too little history for decomposition or forecasting, and the visual then says so instead of throwing an error.</p>
+<p>The Power BI side has four visuals:</p>
+<div class="tablewrap t-green"><table>
+<thead><tr><th>Visual</th><th>Type</th><th>Question it answers</th></tr></thead>
+<tbody>
+<tr><td>Total Sales by Category</td><td>Bar chart</td><td>Which product category brings in the most revenue?</td></tr>
+<tr><td>Total Sales by Segment</td><td>Donut chart</td><td>How is revenue split across customer types?</td></tr>
+<tr><td>Total Profit by State</td><td>Map</td><td>Where is profit concentrated geographically?</td></tr>
+<tr><td>Total Sales and Total Profit by Year</td><td>Column and line</td><td>Is profit growing as fast as sales?</td></tr>
+</tbody></table></div>
+<p>For reference, these are the two report pages as I built them before combining:</p>
+<figure><img src="assets/dashboard-page1.png" alt="Dashboard page 1 with KPI cards and R visuals"><figcaption>Page 1: KPI cards and R visuals.</figcaption></figure>
+<figure><img src="assets/dashboard-page2.png" alt="Dashboard page 2 with Power BI visuals and slicers"><figcaption>Page 2: Power BI visuals and slicers.</figcaption></figure>
+</section>
+
+<section id="kpis">
+<h2>KPI cards</h2>
+<figure><img src="assets/kpi-cards.png" alt="Six KPI cards from the dashboard"><figcaption>Output through cards.</figcaption></figure>
+<div class="tablewrap t-navy"><table>
+<thead><tr><th>KPI</th><th>Value</th><th>Reading</th></tr></thead>
+<tbody>
+<tr><td>Total Sales</td><td>2.30M</td><td>Revenue across 2014 to 2017</td></tr>
+<tr><td>Total Profit</td><td>286.41K</td><td>Profit after cost of goods</td></tr>
+<tr><td>Total Quantity</td><td>37.87K</td><td>Units sold</td></tr>
+<tr><td>Total Orders</td><td>5K</td><td>Distinct orders placed</td></tr>
+<tr><td>Profit Margin</td><td>0.12</td><td>Total Profit divided by Total Sales, about 12 cents per dollar</td></tr>
+<tr><td>Avg Discount</td><td>0.16</td><td>Average discount on an order line, about 16%</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="insights">
+<h2>Business insights</h2>
+<h3>Discounts above 20% lose money</h3>
+<p>This was the clearest result. Order lines with no discount average $66.9 profit and those with 1 to 20% off still average $26.5. Once the discount passes 20% the average flips to a loss, and above 40% it loses $106.7 per line.</p>
+<div class="tablewrap t-red"><table>
+<thead><tr><th>Discount band</th><th>Average profit per order line</th></tr></thead>
+<tbody>
+<tr><td>0%</td><td class="pos">$66.9</td></tr>
+<tr><td>1-20%</td><td class="pos">$26.5</td></tr>
+<tr><td>21-40%</td><td class="neg">-$78.0</td></tr>
+<tr><td>Above 40%</td><td class="neg">-$106.7</td></tr>
+</tbody></table></div>
+<p>With an average discount of 16%, the store is not far from the point where it starts to lose margin, so deep discounts deserve a cap or an approval step.</p>
+<h3>Sales and profit are growing together</h3>
+<p>Yearly sales were flat between 2014 and 2015, then climbed in 2016 and again in 2017. Profit rose every year and the profit line grows a little faster than the bars, which suggests margin held up while volume grew.</p>
+<h3>Strong seasonality</h3>
+<p>The decomposition shows a seasonal pattern that repeats every year, with the highest months around the end of the year. The forecast carries that shape into the next 12 months, with sales continuing to rise and the usual late-year peak.</p>
+<h3>Where the money comes from</h3>
+<p>Technology leads on sales, with Furniture and Office Supplies close behind each other. By customer type the Consumer segment brings in just over half of revenue.</p>
+<div class="tablewrap t-amber"><table>
+<thead><tr><th>Segment</th><th>Share of sales</th></tr></thead>
+<tbody>
+<tr><td>Consumer</td><td>50.56%</td></tr>
+<tr><td>Corporate</td><td>30.74%</td></tr>
+<tr><td>Home Office</td><td>18.69%</td></tr>
+</tbody></table></div>
+<h3>What I would suggest</h3>
+<div class="tablewrap t-teal"><table>
+<thead><tr><th>Finding</th><th>Suggested action</th></tr></thead>
+<tbody>
+<tr><td>Discounts over 20% are unprofitable</td><td>Cap discounts near 20% unless a manager signs off</td></tr>
+<tr><td>Predictable year-end peak</td><td>Plan stock and staffing ahead of the forecast peak</td></tr>
+<tr><td>Consumer segment is half of revenue</td><td>Focus campaigns there, and look at growing Corporate</td></tr>
+<tr><td>Profit varies by state on the map</td><td>Check the low-profit states on the map and review pricing and shipping costs there</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="conclusion">
+<h2>Conclusion</h2>
+<p>Running R inside Power BI gave me the best of both: Power BI for slicers, cards and layout, and R for the statistical work Power BI cannot do natively, namely decomposition and a seasonal forecast. The cleaning script made the data safe to use, the Holt-Winters model produced a 12 month forecast with an uncertainty band, and the dashboard tied it together so the R charts react to the same filters as everything else.</p>
+<p>The main takeaway for the business is that growth is healthy and seasonal, but heavy discounting is eating profit. If I extended this I would add a proper train and test accuracy check to the report and compare Holt-Winters against an ARIMA model.</p>
+<p><strong>Files:</strong> <a href="assets/superstore_powerbi_R.R">full R script</a></p>
+</section>
+</main>
+<footer>Amaan Saxena, B.Tech AIML, Symbiosis Institute of Technology, Pune<br>Blog link: <a href="https://YOUR-USERNAME.github.io/YOUR-REPO/">https://YOUR-USERNAME.github.io/YOUR-REPO/</a></footer>
+</body></html>
